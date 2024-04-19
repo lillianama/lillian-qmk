@@ -8,7 +8,12 @@
 
 //-------- CONFIGURATION START --------
 
+#include <stdio.h>
+#include "oled_driver.h"
+#include "progmem.h"
+#include "timer.h"
 #include "wpm.h"
+
 #ifndef ANIM_RENDER_WPM
   #define ANIM_RENDER_WPM true
 #endif
