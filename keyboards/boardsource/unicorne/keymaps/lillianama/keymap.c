@@ -2,6 +2,17 @@
 #include "lib/lib8tion/lib8tion.h"
 #include "print.h"
 
+#define LILLI_REVEAL_SPEED 250
+#define LILLI_LEDS(leds) leds, sizeof(leds) / sizeof(leds[0])
+#define LILLI_HSV(hsv) hsv.h, hsv.s, hsv.v
+
+static void lilli_set_hsv_colors(const int leds[], int count, uint8_t h, uint8_t s, uint8_t v) {
+    HSV hsvcolor = { h, s, v };
+    RGB rgbcolor = hsv_to_rgb(hsvcolor);
+    for (int i = 0; i < count; i++)
+        rgb_matrix_set_color(leds[i], rgbcolor.r, rgbcolor.g, rgbcolor.b);
+}
+
 #ifdef OLED_ENABLE
 
 #    include "crab.c" //Walking crab animation
@@ -64,30 +75,38 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 const int layer1_purple[] = { 39, 42, 43, 47 };
 const int layer1_white[] = { 23, 18, 17, 10, 9, 36, 37, 44, 45, 50 };
 const int layer1_off[] = { 7, 8, 11, 12, 15, 16, 21, 22, 34, 35, 48, 49, 19, 20, 52 };
+const int layer2_yellow[] = { 8,11,12,15,16,19,20,21,22 };
 const int layer3_red[] = { 12,15, 20 };
 const int layer3_off[] = { 7,21,34,35,38,39,42,43,46,47,48,49,52 };
 
+uint32_t ltime;
+int lilli_reveal_step = 0;
+
 bool rgb_matrix_indicators_user(void) {
-    uint16_t time,i;
-    HSV lili_white_hsv = {0, 0, rgb_matrix_get_val() +40 };
-    RGB lili_white_rgb = hsv_to_rgb(lili_white_hsv);
+    uint16_t time;
     switch (get_highest_layer(layer_state)) {
         case 1:
-            for (i = 0; i < sizeof(layer1_purple) / sizeof(layer1_purple[0]); i++)
-                rgb_matrix_set_color(layer1_purple[i], RGB_PURPLE);
-            for (i = 0; i < sizeof(layer1_white) / sizeof(layer1_white[0]); i++)
-                rgb_matrix_set_color(layer1_white[i], lili_white_rgb.r, lili_white_rgb.g, lili_white_rgb.b);
-            for (i = 0; i < sizeof(layer1_off) / sizeof(layer1_off[0]); i++)
-                rgb_matrix_set_color(layer1_off[i], RGB_OFF);
+            lilli_set_hsv_colors(LILLI_LEDS(layer1_purple), HSV_PURPLE);
+            HSV lilli_white = {0, 0, rgb_matrix_get_val() +10 };
+            lilli_set_hsv_colors(LILLI_LEDS(layer1_white), LILLI_HSV(lilli_white));
+            lilli_set_hsv_colors(LILLI_LEDS(layer1_off), HSV_OFF);
+            break;
+        case 2:
+            time = g_rgb_timer;
+            if (time > ltime + LILLI_REVEAL_SPEED) {
+                lilli_reveal_step++;
+                ltime = time;
+            }
+            dprintf("lilli layer2 %lu %d \n", g_rgb_timer, lilli_reveal_step);
+
+            HSV lilli_yellow = {58, 100, rgb_matrix_get_val() +40 };
+            lilli_set_hsv_colors(LILLI_LEDS(layer2_yellow), LILLI_HSV(lilli_yellow));
             break;
         case 3:
             time = scale16by8(g_rgb_timer, rgb_matrix_config.speed / 4);
-            HSV lili_red_hsv = {0, 255, scale8(abs8(sin8(time) - 128) * 2, rgb_matrix_get_val() +40 ) };
-            RGB lili_red_rgb = hsv_to_rgb(lili_red_hsv);
-            for (i = 0; i < sizeof(layer3_red) / sizeof(layer3_red[0]); i++)
-                rgb_matrix_set_color(layer3_red[i], lili_red_rgb.r, lili_red_rgb.g, lili_red_rgb.b);
-            for (i = 0; i < sizeof(layer3_off) / sizeof(layer3_off[0]); i++)
-                rgb_matrix_set_color(layer3_off[i], RGB_OFF);
+            HSV lilli_pulsing_red = {0, 255, scale8(abs8(sin8(time) - 128) * 2, rgb_matrix_get_val() +40 ) };
+            lilli_set_hsv_colors(LILLI_LEDS(layer3_red), LILLI_HSV(lilli_pulsing_red));
+            lilli_set_hsv_colors(LILLI_LEDS(layer3_off), HSV_OFF);
             break;
     }
     // #ifdef AUDIO_ENABLE
@@ -99,7 +118,3 @@ bool rgb_matrix_indicators_user(void) {
 //     debug_enable = true;
 //     debug_matrix = true;
 // }
-
-#if defined(ENCODER_ENABLE) && defined(ENCODER_MAP_ENABLE)
-const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = { };
-#endif // defined(ENCODER_ENABLE) && defined(ENCODER_MAP_ENABLE)

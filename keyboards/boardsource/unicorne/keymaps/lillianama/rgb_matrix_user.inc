@@ -12,8 +12,8 @@ static bool LILLIAN_KEYMAP_EFFECT(effect_params_t* params) {
 
     int myval = rgb_matrix_get_val();
     HSV lili_purple_hsv = { 190, 255, myval };
-    HSV lili_green_hsv = { 84, 220, myval -30 };
-    HSV lili_red_hsv = { 0, 220, myval -30 };
+    HSV lili_green_hsv = { 84, 220, fmax(myval -30, 10) };
+    HSV lili_red_hsv = { 0, 220, fmax(myval -30, 10) };
     HSV lili_white_hsv = { 0, 0, myval };
 
     RGB lili_purple_rgb = hsv_to_rgb(lili_purple_hsv);
