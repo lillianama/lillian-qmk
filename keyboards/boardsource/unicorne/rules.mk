@@ -3,3 +3,5 @@ AUDIO_DRIVER = pwm_hardware
 POINTING_DEVICE_DRIVER = analog_joystick
 WPM_ENABLE = yes
 TRI_LAYER_ENABLE = yes
+RGB_MATRIX_CUSTOM_USER = yes
+CONSOLE_ENABLE = yes

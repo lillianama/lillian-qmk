@@ -59,16 +59,35 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     )
 };
 
+const int layer1_purple[] = { 39, 42, 43, 47 };
+const int layer1_white[] = { 23, 18, 17, 10, 9, 36, 37, 44, 45, 50 };
+const int layer1_off[] = { 7, 8, 11, 12, 15, 16, 21, 22, 34, 35, 48, 49, 19, 20 };
+const int layer3_red[] = { 12,15, 20 };
+
 bool rgb_matrix_indicators_user(void) {
-    if (get_highest_layer(layer_state) == 3) {
-        rgb_matrix_set_color(20, RGB_PURPLE);
-        rgb_matrix_set_color(15, RGB_PURPLE);
-        rgb_matrix_set_color(12, RGB_PURPLE);
-        //#ifdef AUDIO_ENABLE
-        //PLAY_SONG(function_layer_sound);
-        //#endif // AUDIO_ENABLE
+    switch (get_highest_layer(layer_state)) {
+        case 1:
+            for (int i=0; i < sizeof(layer1_purple) / sizeof(layer1_purple[0]); i++)
+                rgb_matrix_set_color(layer1_purple[i], RGB_PURPLE);
+            for (int i=0; i < sizeof(layer1_white) / sizeof(layer1_white[0]); i++)
+                rgb_matrix_set_color(layer1_white[i], RGB_WHITE);
+            for (int i=0; i < sizeof(layer1_off) / sizeof(layer1_off[0]); i++)
+                rgb_matrix_set_color(layer1_off[i], RGB_OFF);
+            break;
+        case 3:
+            for (int i=0; i < sizeof(layer3_red) / sizeof(layer3_red[0]); i++)
+                rgb_matrix_set_color(layer3_red[i], RGB_RED);
+            break;
     }
+    //#ifdef AUDIO_ENABLE
+    //PLAY_SONG(function_layer_sound);
+    //#endif // AUDIO_ENABLE
     return true;
+}
+void keyboard_post_init_user(void) {
+    debug_enable = true;
+    debug_matrix = true;
+    rgb_matrix_mode_noeeprom(RGB_MATRIX_CUSTOM_LILLIAN_KEYMAP_EFFECT);
 }
 
 #if defined(ENCODER_ENABLE) && defined(ENCODER_MAP_ENABLE)
