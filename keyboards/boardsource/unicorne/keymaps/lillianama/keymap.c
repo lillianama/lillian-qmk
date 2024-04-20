@@ -1,25 +1,27 @@
 #include QMK_KEYBOARD_H
+#include "lib/lib8tion/lib8tion.h"
+#include "print.h"
 
 #ifdef OLED_ENABLE
 
-#include "crab.c" //Walking crab animation
+#    include "crab.c" //Walking crab animation
 
-#define ANIM_INVERT false
-#define ANIM_RENDER_WPM true
-#define FAST_TYPE_WPM 45 //Switch to fast animation when over words per minute
+#    define ANIM_INVERT false
+#    define ANIM_RENDER_WPM true
+#    define FAST_TYPE_WPM 45 // Switch to fast animation when over words per minute
 
 oled_rotation_t oled_init_user(oled_rotation_t rotation) {
-  if (!is_keyboard_master()) {
-    return OLED_ROTATION_180;
-  }
-  return rotation;
+    if (!is_keyboard_master()) {
+        return OLED_ROTATION_180;
+    }
+    return rotation;
 }
 
 bool oled_task_user(void) {
-  if (!is_keyboard_master()) {
-    oled_render_anim();
-  }
-  return false;
+    if (!is_keyboard_master()) {
+        oled_render_anim();
+    }
+    return false;
 }
 
 #endif // OLED_ENABLE
@@ -41,8 +43,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 	[1] = LAYOUT_split_3x6_3(
         KC_TRNS, KC_1, KC_2, KC_3, KC_4, KC_5, KC_6, KC_7, KC_8, KC_9, KC_0, KC_TRNS,
-        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_HOME, KC_UP, KC_END, KC_TRNS, KC_TRNS,
-        KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_LEFT, KC_DOWN, KC_RGHT, KC_TRNS, KC_TRNS,
+        KC_TRNS, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_HOME, KC_UP, KC_END, KC_NO, KC_NO,
+        KC_TRNS, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_LEFT, KC_DOWN, KC_RGHT, KC_NO, KC_TRNS,
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS
     ),
 	[2] = LAYOUT_split_3x6_3(
@@ -61,37 +63,43 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 const int layer1_purple[] = { 39, 42, 43, 47 };
 const int layer1_white[] = { 23, 18, 17, 10, 9, 36, 37, 44, 45, 50 };
-const int layer1_off[] = { 7, 8, 11, 12, 15, 16, 21, 22, 34, 35, 48, 49, 19, 20 };
+const int layer1_off[] = { 7, 8, 11, 12, 15, 16, 21, 22, 34, 35, 48, 49, 19, 20, 52 };
 const int layer3_red[] = { 12,15, 20 };
+const int layer3_off[] = { 7,21,34,35,38,39,42,43,46,47,48,49,52 };
 
 bool rgb_matrix_indicators_user(void) {
+    uint16_t time,i;
+    HSV lili_white_hsv = {0, 0, rgb_matrix_get_val() +40 };
+    RGB lili_white_rgb = hsv_to_rgb(lili_white_hsv);
     switch (get_highest_layer(layer_state)) {
         case 1:
-            for (int i=0; i < sizeof(layer1_purple) / sizeof(layer1_purple[0]); i++)
+            for (i = 0; i < sizeof(layer1_purple) / sizeof(layer1_purple[0]); i++)
                 rgb_matrix_set_color(layer1_purple[i], RGB_PURPLE);
-            for (int i=0; i < sizeof(layer1_white) / sizeof(layer1_white[0]); i++)
-                rgb_matrix_set_color(layer1_white[i], RGB_WHITE);
-            for (int i=0; i < sizeof(layer1_off) / sizeof(layer1_off[0]); i++)
+            for (i = 0; i < sizeof(layer1_white) / sizeof(layer1_white[0]); i++)
+                rgb_matrix_set_color(layer1_white[i], lili_white_rgb.r, lili_white_rgb.g, lili_white_rgb.b);
+            for (i = 0; i < sizeof(layer1_off) / sizeof(layer1_off[0]); i++)
                 rgb_matrix_set_color(layer1_off[i], RGB_OFF);
             break;
         case 3:
-            for (int i=0; i < sizeof(layer3_red) / sizeof(layer3_red[0]); i++)
-                rgb_matrix_set_color(layer3_red[i], RGB_RED);
+            time = scale16by8(g_rgb_timer, rgb_matrix_config.speed / 4);
+            HSV lili_red_hsv = {0, 255, scale8(abs8(sin8(time) - 128) * 2, rgb_matrix_get_val() +40 ) };
+            RGB lili_red_rgb = hsv_to_rgb(lili_red_hsv);
+            for (i = 0; i < sizeof(layer3_red) / sizeof(layer3_red[0]); i++)
+                rgb_matrix_set_color(layer3_red[i], lili_red_rgb.r, lili_red_rgb.g, lili_red_rgb.b);
+            for (i = 0; i < sizeof(layer3_off) / sizeof(layer3_off[0]); i++)
+                rgb_matrix_set_color(layer3_off[i], RGB_OFF);
             break;
     }
-    //#ifdef AUDIO_ENABLE
-    //PLAY_SONG(function_layer_sound);
-    //#endif // AUDIO_ENABLE
+    // #ifdef AUDIO_ENABLE
+    // PLAY_SONG(function_layer_sound);
+    // #endif // AUDIO_ENABLE
     return true;
 }
-void keyboard_post_init_user(void) {
-    debug_enable = true;
-    debug_matrix = true;
-    rgb_matrix_mode_noeeprom(RGB_MATRIX_CUSTOM_LILLIAN_KEYMAP_EFFECT);
-}
+// void keyboard_post_init_user(void) {
+//     debug_enable = true;
+//     debug_matrix = true;
+// }
 
 #if defined(ENCODER_ENABLE) && defined(ENCODER_MAP_ENABLE)
-const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
-d
-};
+const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = { };
 #endif // defined(ENCODER_ENABLE) && defined(ENCODER_MAP_ENABLE)
