@@ -1,12 +1,12 @@
 #include QMK_KEYBOARD_H
+#include "rgb_matrix.h"
 #include "lib/lib8tion/lib8tion.h"
-#include "print.h"
 
 #define LILLI_REVEAL_SPEED 250
 #define LILLI_LEDS(leds) leds, sizeof(leds) / sizeof(leds[0])
 #define LILLI_HSV(hsv) hsv.h, hsv.s, hsv.v
 
-static void lilli_set_hsv_colors(const int leds[], int count, uint8_t h, uint8_t s, uint8_t v) {
+static void lilli_set_hsv_color_multi(const int leds[], int count, uint8_t h, uint8_t s, uint8_t v) {
     HSV hsvcolor = { h, s, v };
     RGB rgbcolor = hsv_to_rgb(hsvcolor);
     for (int i = 0; i < count; i++)
@@ -75,7 +75,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 const int layer1_purple[] = { 39, 42, 43, 47 };
 const int layer1_white[] = { 23, 18, 17, 10, 9, 36, 37, 44, 45, 50 };
 const int layer1_off[] = { 7, 8, 11, 12, 15, 16, 21, 22, 34, 35, 48, 49, 19, 20, 52 };
-const int layer2_yellow[] = { 8,11,12,15,16,19,20,21,22 };
+const int layer2_yellow[] = { 8,11,12,21,22 };
+const int layer2_system_color[] = { 15,16,19,20 };
 const int layer3_red[] = { 12,15, 20 };
 const int layer3_off[] = { 7,21,34,35,38,39,42,43,46,47,48,49,52 };
 
@@ -86,10 +87,10 @@ bool rgb_matrix_indicators_user(void) {
     uint16_t time;
     switch (get_highest_layer(layer_state)) {
         case 1:
-            lilli_set_hsv_colors(LILLI_LEDS(layer1_purple), HSV_PURPLE);
+            lilli_set_hsv_color_multi(LILLI_LEDS(layer1_purple), HSV_PURPLE);
             HSV lilli_white = {0, 0, rgb_matrix_get_val() +10 };
-            lilli_set_hsv_colors(LILLI_LEDS(layer1_white), LILLI_HSV(lilli_white));
-            lilli_set_hsv_colors(LILLI_LEDS(layer1_off), HSV_OFF);
+            lilli_set_hsv_color_multi(LILLI_LEDS(layer1_white), LILLI_HSV(lilli_white));
+            lilli_set_hsv_color_multi(LILLI_LEDS(layer1_off), HSV_OFF);
             break;
         case 2:
             time = g_rgb_timer;
@@ -99,14 +100,16 @@ bool rgb_matrix_indicators_user(void) {
             }
             dprintf("lilli layer2 %lu %d \n", g_rgb_timer, lilli_reveal_step);
 
-            HSV lilli_yellow = {58, 100, rgb_matrix_get_val() +40 };
-            lilli_set_hsv_colors(LILLI_LEDS(layer2_yellow), LILLI_HSV(lilli_yellow));
+            HSV lilli_yellow = {58, 224, rgb_matrix_get_val() +40 };
+            lilli_set_hsv_color_multi(LILLI_LEDS(layer2_yellow), LILLI_HSV(lilli_yellow));
+            HSV lilli_system_color = {rgb_matrix_get_hue(), rgb_matrix_get_sat(), rgb_matrix_get_val() +40 };
+            lilli_set_hsv_color_multi(LILLI_LEDS(layer2_system_color), LILLI_HSV(lilli_system_color));
             break;
         case 3:
             time = scale16by8(g_rgb_timer, rgb_matrix_config.speed / 4);
             HSV lilli_pulsing_red = {0, 255, scale8(abs8(sin8(time) - 128) * 2, rgb_matrix_get_val() +40 ) };
-            lilli_set_hsv_colors(LILLI_LEDS(layer3_red), LILLI_HSV(lilli_pulsing_red));
-            lilli_set_hsv_colors(LILLI_LEDS(layer3_off), HSV_OFF);
+            lilli_set_hsv_color_multi(LILLI_LEDS(layer3_red), LILLI_HSV(lilli_pulsing_red));
+            lilli_set_hsv_color_multi(LILLI_LEDS(layer3_off), HSV_OFF);
             break;
     }
     // #ifdef AUDIO_ENABLE
