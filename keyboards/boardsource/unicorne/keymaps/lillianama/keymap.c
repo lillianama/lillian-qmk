@@ -54,8 +54,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 	[1] = LAYOUT_split_3x6_3(
         KC_TRNS, KC_1, KC_2, KC_3, KC_4, KC_5, KC_6, KC_7, KC_8, KC_9, KC_0, KC_TRNS,
-        KC_TRNS, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_HOME, KC_UP, KC_END, KC_NO, KC_NO,
-        KC_TRNS, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_LEFT, KC_DOWN, KC_RGHT, KC_NO, KC_TRNS,
+        KC_TRNS, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_HOME, KC_UP, KC_END, KC_TRNS, KC_TRNS,
+        KC_TRNS, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_LEFT, KC_DOWN, KC_RGHT, KC_TRNS, KC_TRNS,
         KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS
     ),
 	[2] = LAYOUT_split_3x6_3(
@@ -74,7 +74,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 const int layer1_purple[] = { 39, 42, 43, 47 };
 const int layer1_white[] = { 23, 18, 17, 10, 9, 36, 37, 44, 45, 50 };
-const int layer1_off[] = { 7, 8, 11, 12, 15, 16, 21, 22, 34, 35, 48, 49, 19, 20, 52 };
+const int layer1_off[] = { 7, 8, 11, 12, 15, 16, 21, 22, 34, 35, 19, 20 };
 const int layer2_yellow[] = { 8,11,12,21,22 };
 const int layer2_system_color[] = { 15,16,19,20 };
 const int layer3_red[] = { 12,15, 20 };
