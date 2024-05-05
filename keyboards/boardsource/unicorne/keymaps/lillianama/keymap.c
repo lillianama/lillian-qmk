@@ -2,36 +2,81 @@
 #include "rgb_matrix.h"
 #include "lib/lib8tion/lib8tion.h"
 
-#define LILLI_REVEAL_SPEED 250
-#define LILLI_LEDS(leds) leds, sizeof(leds) / sizeof(leds[0])
-#define LILLI_HSV(hsv) hsv.h, hsv.s, hsv.v
-
-static void lilli_set_hsv_color_multi(const int leds[], int count, uint8_t h, uint8_t s, uint8_t v) {
-    HSV hsvcolor = { h, s, v };
-    RGB rgbcolor = hsv_to_rgb(hsvcolor);
-    for (int i = 0; i < count; i++)
-        rgb_matrix_set_color(leds[i], rgbcolor.r, rgbcolor.g, rgbcolor.b);
-}
 
 #ifdef OLED_ENABLE
 
-#    include "crab.c" //Walking crab animation
+//#    include "crab.c" //Walking crab animation
+#    include "lilli-utils.c"
+#    include "lilli-images.h"
 
 #    define ANIM_INVERT false
 #    define ANIM_RENDER_WPM true
 #    define FAST_TYPE_WPM 45 // Switch to fast animation when over words per minute
 
 oled_rotation_t oled_init_user(oled_rotation_t rotation) {
-    if (!is_keyboard_master()) {
+    if (is_keyboard_master()) {
+        return OLED_ROTATION_270;
+    } else {
         return OLED_ROTATION_180;
     }
-    return rotation;
 }
 
 bool oled_task_user(void) {
-    if (!is_keyboard_master()) {
-        oled_render_anim();
+    //char str[24] = {};
+    //sprintf(str, "%d x %d", OLED_DISPLAY_WIDTH, OLED_DISPLAY_HEIGHT);
+
+    if (is_keyboard_master()) {
+        // if (is_oled_scrolling()) {
+        //     oled_write_raw(lillian_logo_270, sizeof(lillian_logo_270));
+        lilli_render_wpm_graph();
+    } else {
+        /*oled_set_cursor(0, 0);
+        switch (get_highest_layer(layer_state)) {
+            case 0:
+                oled_write_P(PSTR(str), false);
+                break;
+            case 1:
+                oled_write_P(PSTR("Numbers\n"), false);
+                break;
+            case 2:
+                oled_write_P(PSTR("Symbols\n"), false);
+                break;
+            case 3:
+                oled_write_P(PSTR("Function\n"), false);
+                break;
+            default:
+                // Or use the write_ln shortcut over adding '\n' to the end of your string
+                oled_write_ln_P(PSTR("Undefined"), false);
+        }
+
+        // Host Keyboard LED Status
+        led_t led_state = host_keyboard_led_state();
+        oled_write_P(led_state.num_lock ? PSTR("NUM ") : PSTR("    "), false);
+        oled_write_P(led_state.caps_lock ? PSTR("CAP ") : PSTR("    "), false);
+        oled_write_P(led_state.scroll_lock ? PSTR("SCR ") : PSTR("    "), false);
+
+        oled_write_P(led_state.scroll_lock ? PSTR("SCR ") : PSTR("    "), false);
+        */
+        oled_write_raw(lillian_logo_180, sizeof(lillian_logo_180));
     }
+    return false;
+}
+
+void oled_render_boot(bool bootloader) {
+    oled_clear();
+    for (int i = 0; i < 1; i++) {
+        oled_set_cursor(0, i);
+        if (bootloader) {
+            oled_write_P(PSTR("Awaiting New Firmware "), false);
+        } else {
+            oled_write_P(PSTR("Rebooting "), false);
+        }
+    }
+    oled_render_dirty(true);
+}
+
+bool shutdown_user(bool jump_to_bootloader) {
+    oled_render_boot(jump_to_bootloader);
     return false;
 }
 
@@ -84,6 +129,8 @@ uint32_t ltime;
 int lilli_reveal_step = 0;
 
 bool rgb_matrix_indicators_user(void) {
+    //static last_layer_state
+    //return true; //don't do anything right now
     uint16_t time;
     switch (get_highest_layer(layer_state)) {
         case 1:
