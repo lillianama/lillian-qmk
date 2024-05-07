@@ -1,17 +1,11 @@
 #include QMK_KEYBOARD_H
 #include "rgb_matrix.h"
 #include "lib/lib8tion/lib8tion.h"
-
+#include "lilli-utils.c"
 
 #ifdef OLED_ENABLE
-
-//#    include "crab.c" //Walking crab animation
-#    include "lilli-utils.c"
+#    include "lilli-wpm.c"
 #    include "lilli-images.h"
-
-#    define ANIM_INVERT false
-#    define ANIM_RENDER_WPM true
-#    define FAST_TYPE_WPM 45 // Switch to fast animation when over words per minute
 
 oled_rotation_t oled_init_user(oled_rotation_t rotation) {
     if (is_keyboard_master()) {
@@ -22,12 +16,8 @@ oled_rotation_t oled_init_user(oled_rotation_t rotation) {
 }
 
 bool oled_task_user(void) {
-    //char str[24] = {};
-    //sprintf(str, "%d x %d", OLED_DISPLAY_WIDTH, OLED_DISPLAY_HEIGHT);
-
     if (is_keyboard_master()) {
-        // if (is_oled_scrolling()) {
-        //     oled_write_raw(lillian_logo_270, sizeof(lillian_logo_270));
+        lilli_render_wpm_level();
         lilli_render_wpm_graph();
     } else {
         /*oled_set_cursor(0, 0);
@@ -145,7 +135,7 @@ bool rgb_matrix_indicators_user(void) {
                 lilli_reveal_step++;
                 ltime = time;
             }
-            dprintf("lilli layer2 %lu %d \n", g_rgb_timer, lilli_reveal_step);
+            //dprintf("lilli layer2 %lu %d \n", g_rgb_timer, lilli_reveal_step);
 
             HSV lilli_yellow = {58, 224, rgb_matrix_get_val() +40 };
             lilli_set_hsv_color_multi(LILLI_LEDS(layer2_yellow), LILLI_HSV(lilli_yellow));
@@ -164,7 +154,8 @@ bool rgb_matrix_indicators_user(void) {
     // #endif // AUDIO_ENABLE
     return true;
 }
-// void keyboard_post_init_user(void) {
-//     debug_enable = true;
-//     debug_matrix = true;
-// }
+
+void keyboard_post_init_user(void) {
+    //debug_enable = true;
+    //debug_matrix = true;
+}
