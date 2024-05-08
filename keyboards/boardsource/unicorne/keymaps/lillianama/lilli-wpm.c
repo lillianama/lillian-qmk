@@ -5,6 +5,7 @@
 #include "debug.h"
 #include "lib/lib8tion/lib8tion.h"
 #include "oled_driver.h"
+#include "timer.h"
 #include "wpm.h"
 
 #define LILLI_WPM_LEVEL_TIMER 100
@@ -27,7 +28,8 @@
 #define LILLI_WPM_GRAPH_AREA_WIDTH LILLI_WPM_GRAPH_BOX_WIDTH - (LILLI_WPM_GRAPH_BOX_BORDER * 2) - (LILLI_WPM_GRAPH_BOX_SPACER * 2)
 
 struct wpm_buffer {
-    uint8_t list[LILLI_WPM_GRAPH_AREA_WIDTH];
+    uint8_t scaled[LILLI_WPM_GRAPH_AREA_WIDTH];
+    int list[LILLI_WPM_GRAPH_AREA_WIDTH];
 };
 static struct wpm_buffer wpms = { 0 };
 struct wpm_draw_params {
@@ -76,7 +78,7 @@ static bool lilli_get_wpm_level_pixel(int x, int y, struct wpm_draw_params param
 }
 
 static bool lilli_get_wpm_graph_pixel(int x, int y, struct wpm_draw_params params) {
-    if (y >= wpms.list[x-2]) return true;
+    if (y >= wpms.scaled[x-2]) return true;
     else return false;
 }
 
@@ -148,9 +150,11 @@ static void lilli_render_wpm_graph(void) {
         initializing = false; //don't try this again :)
         dprintf("lilli_render_wpm_graph() initializing\n");
 
-        //wpms array init
+        //init the arrays
         for (int i = 0; i < LILLI_WPM_GRAPH_AREA_WIDTH; i++)
-            wpms.list[i] = LILLI_WPM_GRAPH_BOX_Y + LILLI_WPM_GRAPH_BOX_HEIGHT - 2;
+            wpms.scaled[i] = LILLI_WPM_GRAPH_BOX_Y + LILLI_WPM_GRAPH_BOX_HEIGHT - 2;
+        for (int i = 0; i < LILLI_WPM_GRAPH_AREA_WIDTH; i++)
+            wpms.list[i] = 0;
 
         //draw the graph border
         struct wpm_draw_params border_params = {
@@ -161,7 +165,7 @@ static void lilli_render_wpm_graph(void) {
         lilli_wpm_draw(border_params, &lilli_get_wpm_graph_border_pixel);
     }
 
-    uint8_t wpm = get_current_wpm();
+    int wpm = get_current_wpm();
 
     //scale the wpm value in proportion to a desired maximum and the height of the graph area
     const int y_gt = LILLI_WPM_GRAPH_BOX_Y + 2;
@@ -170,11 +174,13 @@ static void lilli_render_wpm_graph(void) {
     const int s = floor((wpm * gh) / LILLI_WPM_GRAPH_MAX);
     const uint8_t graph_y = gh - s + y_gt;
 
-    //shift the array
+    //shift the arrays
+    memmove8(&wpms.scaled[0], &wpms.scaled[1], sizeof(wpms.scaled[0]) * (LILLI_WPM_GRAPH_AREA_WIDTH - 1));
     memmove8(&wpms.list[0], &wpms.list[1], sizeof(wpms.list[0]) * (LILLI_WPM_GRAPH_AREA_WIDTH - 1));
 
-    //push latest value to the end of the array
-    wpms.list[LILLI_WPM_GRAPH_AREA_WIDTH - 1] = graph_y;
+    //push latest values
+    wpms.scaled[LILLI_WPM_GRAPH_AREA_WIDTH - 1] = graph_y;
+    wpms.list[LILLI_WPM_GRAPH_AREA_WIDTH - 1] = wpm;
 
     //draw the graph
     struct wpm_draw_params graph_params = {
@@ -185,6 +191,18 @@ static void lilli_render_wpm_graph(void) {
         true,
         wpm
     };
-
     lilli_wpm_draw(graph_params, &lilli_get_wpm_graph_pixel);
+
+    //draw the avg
+    int sum = 0, avg = 0;
+    for (int i = 0; i < LILLI_WPM_GRAPH_AREA_WIDTH; i++)
+        sum += wpms.list[i];
+    avg = sum / (LILLI_WPM_GRAPH_AREA_WIDTH + 1);
+
+    oled_set_cursor(1, 13);
+    oled_write("avg", false);
+    char wpm_str[8];
+    sprintf(wpm_str, "%03u", avg);
+    oled_set_cursor(1, 14);
+    oled_write(wpm_str, false);
 }
