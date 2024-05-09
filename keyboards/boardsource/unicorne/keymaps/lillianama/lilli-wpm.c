@@ -17,7 +17,7 @@
 #define LILLI_WPM_LEVEL_BOX_SPACER 1
 #define LILLI_WPM_LEVEL_MAX 110
 
-#define LILLI_WPM_GRAPH_TIMER 500
+#define LILLI_WPM_GRAPH_TIMER 250
 #define LILLI_WPM_GRAPH_BOX_HEIGHT 50
 #define LILLI_WPM_GRAPH_BOX_WIDTH 32
 #define LILLI_WPM_GRAPH_BOX_X 0
@@ -31,27 +31,27 @@ struct wpm_buffer {
     uint8_t scaled[LILLI_WPM_GRAPH_AREA_WIDTH];
     int list[LILLI_WPM_GRAPH_AREA_WIDTH];
 };
-static struct wpm_buffer wpms = { 0 };
-struct wpm_draw_params {
+static struct wpm_buffer wpms;
+struct lilli_shape {
     int x, y, w, h;
     bool write_off_pixel;
     uint8_t wpm;
-    uint8_t scaled_wpm;
+    int scaled_wpm;
 };
 
-static void lilli_wpm_draw(struct wpm_draw_params params, bool (*callback)(int x, int y, struct wpm_draw_params params)) {
+static void lilli_draw(struct lilli_shape shape, bool (*callback)(int x, int y, struct lilli_shape shape)) {
     bool pixel_on;
-    for (int x = params.x; x < params.x + params.w; x++) {
+    for (int x = shape.x; x < shape.x + shape.w; x++) {
         pixel_on = false;
-        for (int y = params.y; y < params.y + params.h; y++) {
-            pixel_on = (*callback)(x, y, params);
-            if ((params.write_off_pixel && !pixel_on) || pixel_on)
+        for (int y = shape.y; y < shape.y + shape.h; y++) {
+            pixel_on = (*callback)(x, y, shape);
+            if ((shape.write_off_pixel && !pixel_on) || pixel_on)
                 oled_write_pixel(x, y, pixel_on);
         }
     }
 }
 
-static bool lilli_get_wpm_level_border_pixel(int x, int y, struct wpm_draw_params params) {
+static bool lilli_get_wpm_level_border_pixel(int x, int y, struct lilli_shape shape) {
     if (x == LILLI_WPM_LEVEL_BOX_X || x == LILLI_WPM_LEVEL_BOX_X + LILLI_WPM_LEVEL_BOX_WIDTH - 1)
         return true;
     else if (y == LILLI_WPM_LEVEL_BOX_Y || y == LILLI_WPM_LEVEL_BOX_Y + LILLI_WPM_LEVEL_BOX_HEIGHT - 1)
@@ -60,7 +60,7 @@ static bool lilli_get_wpm_level_border_pixel(int x, int y, struct wpm_draw_param
         return false;
 }
 
-static bool lilli_get_wpm_graph_border_pixel(int x, int y, struct wpm_draw_params params) {
+static bool lilli_get_wpm_graph_border_pixel(int x, int y, struct lilli_shape shape) {
     if (x == LILLI_WPM_GRAPH_BOX_X || x == LILLI_WPM_GRAPH_BOX_X + LILLI_WPM_GRAPH_BOX_WIDTH - 1)
         return true;
     else if (y == LILLI_WPM_GRAPH_BOX_Y || y == LILLI_WPM_GRAPH_BOX_Y + LILLI_WPM_GRAPH_BOX_HEIGHT - 1)
@@ -69,16 +69,13 @@ static bool lilli_get_wpm_graph_border_pixel(int x, int y, struct wpm_draw_param
         return false;
 }
 
-static bool lilli_get_wpm_level_pixel(int x, int y, struct wpm_draw_params params) {
-    if (y < LILLI_WPM_LEVEL_BOX_HEIGHT - 2 && x < LILLI_WPM_LEVEL_BOX_WIDTH - 2) {
-        //we're in the graph area
-        if (abs8(y - LILLI_WPM_LEVEL_BOX_HEIGHT) <= params.scaled_wpm) return true;
-        else return false;
-    } else return false;
+static bool lilli_get_wpm_level_pixel(int x, int y, struct lilli_shape shape) {
+    if (y >= shape.scaled_wpm && y % 2 == 0 && x % 2 == 0) return true;
+    else return false;
 }
 
-static bool lilli_get_wpm_graph_pixel(int x, int y, struct wpm_draw_params params) {
-    if (y >= wpms.scaled[x-2]) return true;
+static bool lilli_get_wpm_graph_pixel(int x, int y, struct lilli_shape shape) {
+    if (y >= wpms.scaled[x-2] && (y % 2 == 0)) return true;
     else return false;
 }
 
@@ -99,11 +96,11 @@ static void lilli_render_wpm_level(void) {
         dprintf("lilli_render_wpm_level() initializing\n");
 
         //draw the border
-        struct wpm_draw_params border_params = {
+        struct lilli_shape border_shape = {
             LILLI_WPM_LEVEL_BOX_X, LILLI_WPM_LEVEL_BOX_Y, LILLI_WPM_LEVEL_BOX_WIDTH, LILLI_WPM_LEVEL_BOX_HEIGHT,
             false
         };
-        lilli_wpm_draw(border_params, &lilli_get_wpm_level_border_pixel);
+        lilli_draw(border_shape, &lilli_get_wpm_level_border_pixel);
 
         //set inital wpm text
         oled_set_cursor(1, 1);
@@ -116,7 +113,7 @@ static void lilli_render_wpm_level(void) {
     if (wpm == lwpm) return; else lwpm = wpm;
 
     //draw the graph
-    struct wpm_draw_params level_params = {
+    struct lilli_shape level_shape = {
         LILLI_WPM_LEVEL_BOX_X + 2,
         LILLI_WPM_LEVEL_BOX_Y + 2,
         LILLI_WPM_LEVEL_BOX_WIDTH - 4,
@@ -124,9 +121,14 @@ static void lilli_render_wpm_level(void) {
         true,
         wpm
     };
-    //scale the wpm value in proportion to a desired maximum and the height of the graph area
-    level_params.scaled_wpm = (wpm * (LILLI_WPM_LEVEL_BOX_HEIGHT - 2)) / LILLI_WPM_LEVEL_MAX;
-    lilli_wpm_draw(level_params, &lilli_get_wpm_level_pixel);
+
+    //scale the wpm value in proportion to a desired maximum wpm and the height of the graph area
+    const int y_gt = LILLI_WPM_LEVEL_BOX_Y + 2;
+    const int y_gb = LILLI_WPM_LEVEL_BOX_Y + LILLI_WPM_LEVEL_BOX_HEIGHT - 2;
+    const int gh = y_gb - y_gt;
+    const int s = (wpm * gh) / LILLI_WPM_LEVEL_MAX;
+    level_shape.scaled_wpm = gh - s + y_gt;
+    lilli_draw(level_shape, &lilli_get_wpm_level_pixel);
 
     //write the wpm text
     oled_set_cursor(1, 1);
@@ -157,17 +159,17 @@ static void lilli_render_wpm_graph(void) {
             wpms.list[i] = 0;
 
         //draw the graph border
-        struct wpm_draw_params border_params = {
+        struct lilli_shape border_shape = {
             LILLI_WPM_GRAPH_BOX_X, LILLI_WPM_GRAPH_BOX_Y,
             LILLI_WPM_GRAPH_BOX_WIDTH, LILLI_WPM_GRAPH_BOX_HEIGHT,
             false
         };
-        lilli_wpm_draw(border_params, &lilli_get_wpm_graph_border_pixel);
+        lilli_draw(border_shape, &lilli_get_wpm_graph_border_pixel);
     }
 
     int wpm = get_current_wpm();
 
-    //scale the wpm value in proportion to a desired maximum and the height of the graph area
+    //scale the wpm value in proportion to a desired maximum wpm and the height of the graph area
     const int y_gt = LILLI_WPM_GRAPH_BOX_Y + 2;
     const int y_gb = LILLI_WPM_GRAPH_BOX_Y + LILLI_WPM_GRAPH_BOX_HEIGHT - 2;
     const int gh = y_gb - y_gt;
@@ -183,7 +185,7 @@ static void lilli_render_wpm_graph(void) {
     wpms.list[LILLI_WPM_GRAPH_AREA_WIDTH - 1] = wpm;
 
     //draw the graph
-    struct wpm_draw_params graph_params = {
+    struct lilli_shape graph_shape = {
         LILLI_WPM_GRAPH_BOX_X + 2,
         LILLI_WPM_GRAPH_BOX_Y + 2,
         LILLI_WPM_GRAPH_BOX_WIDTH - 4,
@@ -191,7 +193,7 @@ static void lilli_render_wpm_graph(void) {
         true,
         wpm
     };
-    lilli_wpm_draw(graph_params, &lilli_get_wpm_graph_pixel);
+    lilli_draw(graph_shape, &lilli_get_wpm_graph_pixel);
 
     //draw the avg
     int sum = 0, avg = 0;
