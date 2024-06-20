@@ -4,6 +4,7 @@
 #include "lilli-utils.c"
 
 #ifdef OLED_ENABLE
+#    include "lilli-gfx.c"
 #    include "lilli-wpm.c"
 #    include "lilli-images.h"
 
@@ -11,7 +12,8 @@ oled_rotation_t oled_init_user(oled_rotation_t rotation) {
     if (is_keyboard_master()) {
         return OLED_ROTATION_270;
     } else {
-        return OLED_ROTATION_180;
+        //return OLED_ROTATION_180;
+        return OLED_ROTATION_270;
     }
 }
 
@@ -20,34 +22,7 @@ bool oled_task_user(void) {
         lilli_render_wpm_level();
         lilli_render_wpm_graph();
     } else {
-        /*oled_set_cursor(0, 0);
-        switch (get_highest_layer(layer_state)) {
-            case 0:
-                oled_write_P(PSTR(str), false);
-                break;
-            case 1:
-                oled_write_P(PSTR("Numbers\n"), false);
-                break;
-            case 2:
-                oled_write_P(PSTR("Symbols\n"), false);
-                break;
-            case 3:
-                oled_write_P(PSTR("Function\n"), false);
-                break;
-            default:
-                // Or use the write_ln shortcut over adding '\n' to the end of your string
-                oled_write_ln_P(PSTR("Undefined"), false);
-        }
-
-        // Host Keyboard LED Status
-        led_t led_state = host_keyboard_led_state();
-        oled_write_P(led_state.num_lock ? PSTR("NUM ") : PSTR("    "), false);
-        oled_write_P(led_state.caps_lock ? PSTR("CAP ") : PSTR("    "), false);
-        oled_write_P(led_state.scroll_lock ? PSTR("SCR ") : PSTR("    "), false);
-
-        oled_write_P(led_state.scroll_lock ? PSTR("SCR ") : PSTR("    "), false);
-        */
-        oled_write_raw(lillian_logo_180, sizeof(lillian_logo_180));
+        lilli_render_line();
     }
     return false;
 }
